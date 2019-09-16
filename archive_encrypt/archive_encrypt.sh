@@ -60,7 +60,6 @@ fi
 
 # TODO: Check encrypt method
 
-# TODO: Usage check
 if [[ "${#}" -ne 2 ]]; then
     echo "USAGE: ${_SCRIPT} OUTPUT_FILENAME SOURCE"
     exit 1
@@ -68,6 +67,11 @@ fi
 _output_filename=${1}
 _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
 _source=${2}
+
+# Avoid gpg encryption file duplicates
+if [[ -f "${_output_fullpath}.gpg" ]]; then
+    rm ${_output_fullpath}.gpg
+fi
 
 # Archive and encrypt
 echo "Archiving..."

@@ -2,12 +2,7 @@
 Archive and encrypt single source file or directory 
 
 ## Version
-In Development (Program roughly working)
-
-### TODOs
 **v0.1.0**
-- Optional compress method (issue #2)
-- Random passphrase if passphrase file not exist (issue #1)
 
 ## Setup
 Run `setup.sh` script for installation

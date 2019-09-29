@@ -19,14 +19,39 @@
 #   4 - COnfig file environment error
 
 
+# ----------------------------------------------------------------------------
+# Function definition
+#
+# Usage: random_password PASSWORD_LENTGH [CHARACTER_SET]
+# Return:
+#   11 - usage error
+# ----------------------------------------------------------------------------
+random_password() {
+    if [[ "${#}" -ne 1 && "${#}" -ne 2 ]]; then
+        echo "Usage: random_password PASSWORD_LENGTH [CHARACTER_SET]"
+        exit 11
+    fi
+
+    _length=${1}
+    if [[ "${#}" -eq 2 ]]; then
+        _character_set="${2}"
+    else
+        _character_set='a-zA-Z0-9!@#$%^&*()_+'
+    fi
+
+    echo $(cat /dev/urandom | tr -dc ${_character_set} | fold -w ${_length} | head -n 1)
+}
+
+
 
 # Environment variables
 _SCRIPT=$(basename ${0})
 _CONFIG_FILE=./archive_encrypt.conf
 
-# ====================
+# --------------------
 # Requirements testing
-# ====================
+# --------------------
+
 # Config file
 if [[ ! -f "${_CONFIG_FILE}" ]]; then
     echo "Info: ${_CONFIG_FILE} file for configuration not found"
@@ -52,10 +77,11 @@ if [[ -z "${_DESTINATION_DIR}" || ! -d "${_DESTINATION_DIR}" ]]; then
     echo "Info: Config _DESTINATION_DIR no value or not exist"
     exit 4
 fi
+
 # Passphrase file 
+# Generate random passphrase if no passphrase commited
 if [[ -z "${_PASSPHRASE_FILE}" || ! -f "${_PASSPHRASE_FILE}" ]]; then
-    echo "Info: Config _PASSPHRASE_FILE no value or not exist"
-    exit 4
+    _passphrase=$(random_password 17)
 fi
 
 # Check encrypt method
@@ -85,8 +111,16 @@ fi
 # Archive and encrypt
 echo "Archiving..."
 tar ${_tar_option} ${_output_fullpath} ${_source}
+
 echo "Encrypting..."
-gpg -c --batch --passphrase-file ${_PASSPHRASE_FILE} ${_output_fullpath}
+if [[ -z "${_passphrase}" ]]; then
+    gpg -c --batch --passphrase-file ${_PASSPHRASE_FILE} ${_output_fullpath}
+else
+    gpg -c --batch --passphrase "${_passphrase}" ${_output_fullpath}
+    echo
+    echo "Passphrase: ${_passphrase}"
+fi
 rm ${_output_fullpath}
 
+echo
 echo "Archive and encrypt done"

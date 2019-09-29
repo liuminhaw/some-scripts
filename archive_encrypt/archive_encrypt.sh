@@ -58,7 +58,16 @@ if [[ -z "${_PASSPHRASE_FILE}" || ! -f "${_PASSPHRASE_FILE}" ]]; then
     exit 4
 fi
 
-# TODO: Check encrypt method
+# Check encrypt method
+shopt -s nocasematch
+if [[ "${_ENCRYPT_METHOD}" == "bzip2" ]]; then
+    _tar_option='-jcf'
+elif [[ "${_ENCRYPT_METHOD}" == "xz" ]]; then
+    _tar_option='-Jcf'
+else 
+    _tar_option='-zcf'
+fi
+
 
 if [[ "${#}" -ne 2 ]]; then
     echo "USAGE: ${_SCRIPT} OUTPUT_FILENAME SOURCE"
@@ -75,7 +84,7 @@ fi
 
 # Archive and encrypt
 echo "Archiving..."
-tar -zcf ${_output_fullpath} ${_source}
+tar ${_tar_option} ${_output_fullpath} ${_source}
 echo "Encrypting..."
 gpg -c --batch --passphrase-file ${_PASSPHRASE_FILE} ${_output_fullpath}
 rm ${_output_fullpath}

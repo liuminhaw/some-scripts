@@ -1,5 +1,5 @@
 #!/bin/bash
- 
+
 # Program:
 #   Archives and encrypt target path for further use
 # Author:
@@ -16,7 +16,10 @@
 #   1 - Usage error
 #   2 - Config file not found
 #   3 - Missing command
-#   4 - COnfig file environment error
+#   4 - Config file environment error
+#   5 - Source not found
+#
+# Version: 0.1.1
 
 
 # ----------------------------------------------------------------------------
@@ -102,6 +105,14 @@ fi
 _output_filename=${1}
 _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
 _source=${2}
+_source_dir=$(dirname ${_source})
+_source_base=$(basename ${_source})
+
+# Source directory/file
+if [[ -e "${source}" ]]; then
+    echo "Info: Source ${_source} does not exist"
+    exit 5
+fi
 
 # Avoid gpg encryption file duplicates
 if [[ -f "${_output_fullpath}.gpg" ]]; then
@@ -110,7 +121,9 @@ fi
 
 # Archive and encrypt
 echo "Archiving..."
-tar ${_tar_option} ${_output_fullpath} ${_source}
+cd ${_source_dir}
+tar ${_tar_option} ${_output_fullpath} ${_source_base}
+cd -
 
 echo "Encrypting..."
 if [[ -z "${_passphrase}" ]]; then

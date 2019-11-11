@@ -2,7 +2,10 @@
 Archive and encrypt single source file or directory 
 
 ## Version
-**v0.1.0**
+**v0.1.1**
+- Can set to read source from other location
+
+v0.1.0
 
 ## Setup
 Run `setup.sh` script for installation

@@ -22,6 +22,24 @@
 # ----------------------------------------------------------------------------
 # Function definition
 #
+# Usage: show_help
+# ----------------------------------------------------------------------------
+show_help() {
+    echo "USAGE: ${_SCRIPT} OUTPUT_FILENAME SOURCE"
+cat << EOF
+Usage: ${0##*/} [--help] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCE
+
+    --help                  Display this help message and exit
+    --config=CONFIG_FILE
+    --config CONFIG_FILE    Secify config file to read when running the script
+                            Default config file: ./archive_encrypt.conf
+EOF
+}
+
+
+# ----------------------------------------------------------------------------
+# Function definition
+#
 # Usage: random_password PASSWORD_LENTGH [CHARACTER_SET]
 # Return:
 #   11 - usage error
@@ -48,9 +66,43 @@ random_password() {
 _SCRIPT=$(basename ${0})
 _CONFIG_FILE=./archive_encrypt.conf
 
+# Command line options
+while :; do
+    case ${1} in
+        --help)
+            show_help
+            exit
+            ;;
+        --config)
+            if [[ "${2}" ]]; then
+                _CONFIG_FILE=${2}
+                shift
+            else
+                echo 'ERROR: "--config" requires a non-empty option argument.' 1>&2
+                exit 1
+            fi
+            ;;
+        --config=?*)
+            _CONFIG_FILE=${1#*=} # Delete everything up to "=" and assign the remainder
+            ;;
+        --config=)
+            echo 'ERROR: "--config" requires a non-empty option argument.' 1>&2
+            exit 1
+            ;;
+        -?*)
+            echo "WARN: Unknown option (ignored): ${1}" 1>&2
+            ;;
+        *)  # Default case: no more options
+            break
+    esac
+
+    shift
+done
+
 # --------------------
 # Requirements testing
 # --------------------
+
 
 # Config file
 if [[ ! -f "${_CONFIG_FILE}" ]]; then
@@ -96,7 +148,7 @@ fi
 
 
 if [[ "${#}" -ne 2 ]]; then
-    echo "USAGE: ${_SCRIPT} OUTPUT_FILENAME SOURCE"
+    show_help
     exit 1
 fi
 _output_filename=${1}

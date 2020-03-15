@@ -21,5 +21,10 @@ Run `setup.sh` script for installation
 
 ## Usage
 ```sh
-./archive_encrypt.sh OUTPUT_FILENAME SOURCE
+Usage: ./archive_encrypt.sh [--help] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCE
+
+    --help                  Display this help message and exit
+    --config=CONFIG_FILE
+    --config CONFIG_FILE    Secify config file to read when running the script
+                            Default config file: ./archive_encrypt.conf
 ```

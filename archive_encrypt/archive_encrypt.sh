@@ -17,9 +17,10 @@
 #   2 - Config file not found
 #   3 - Missing command
 #   4 - Config file environment error
-#   5 - Source not found
+#   5 - Temp source directory exist
+#   6 - Skip process with no sources
 #
-# Version: 0.1.1
+# Version: 0.1.2
 
 
 # ----------------------------------------------------------------------------
@@ -28,14 +29,14 @@
 # Usage: show_help
 # ----------------------------------------------------------------------------
 show_help() {
-    echo "USAGE: ${_SCRIPT} OUTPUT_FILENAME SOURCE"
 cat << EOF
-Usage: ${0##*/} [--help] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCE
+Usage: ${0##*/} [--help] [--version] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCES...
 
     --help                  Display this help message and exit
     --config=CONFIG_FILE
     --config CONFIG_FILE    Secify config file to read when running the script
                             Default config file: ./archive_encrypt.conf
+    --version               Show version information
 EOF
 }
 
@@ -66,8 +67,11 @@ random_password() {
 
 
 # Environment variables
+_VERSION="0.1.2"
 _SCRIPT=$(basename ${0})
+
 _CONFIG_FILE=./archive_encrypt.conf
+_TEMP_SOURCE="/tmp/archive-envcrypt_$(date +%Y%m%d-%H%M%S)"
 
 _NC='\033[0m'
 _ORANGE='\033[0;33m'
@@ -81,6 +85,10 @@ while :; do
     case ${1} in
         --help)
             show_help
+            exit
+            ;;
+        --version)
+            echo "Version: ${_VERSION}"
             exit
             ;;
         --config)
@@ -140,6 +148,13 @@ if [[ -z "${_DESTINATION_DIR}" || ! -d "${_DESTINATION_DIR}" ]]; then
     exit 4
 fi
 
+# Temp source directory
+if [[ -d "${_TEMP_SOURCE}" ]]; then
+    echo -e "[${_ORANGE}Info${_NC}] ${_TEMP_SOURCE} already exist"
+    exit 5 
+fi
+mkdir ${_TEMP_SOURCE}
+
 # Passphrase file 
 # Generate random passphrase if no passphrase commited
 if [[ -z "${_PASSPHRASE_FILE}" || ! -f "${_PASSPHRASE_FILE}" ]]; then
@@ -159,20 +174,41 @@ else
 fi
 
 
-if [[ "${#}" -ne 2 ]]; then
+if [[ "${#}" -lt 2 ]]; then
     show_help
     exit 1
 fi
 _output_filename=${1}
 _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
-_source=${2}
-_source_dir=$(dirname ${_source})
-_source_base=$(basename ${_source})
+
+shift 1
+_sources=${@}
+
+for _source in ${_sources}; do
+    if [[ ! -e "${_source}" ]]; then
+        echo -e "[${_ORANGE}Info${_NC}] Source ${_source} does not exist"
+        echo -e "${_LBLUE}==>${_NC} Skip ${_source}"
+        continue
+    fi
+
+    # Copy source to temp source destination
+    cp -r ${_source} ${_TEMP_SOURCE}
+done
+
+# _source_dir=$(dirname ${_source})
+# _source_base=$(basename ${_source})
 
 # Source directory/file
-if [[ -e "${source}" ]]; then
-    echo -e "[${_ORANGE}Info${_NC}] Source ${_source} does not exist"
-    exit 5
+# if [[ -e "${source}" ]]; then
+#     echo -e "[${_ORANGE}Info${_NC}] Source ${_source} does not exist"
+#     exit 5
+# fi
+
+# Avoid for empty source directory 
+if [[ ! "$(ls -A ${_TEMP_SOURCE})" ]]; then
+    echo -e "[${_ORANGE}Info${_NC}] All sources not exist, skip process." 
+    rmdir ${_TEMP_SOURCE}
+    exit 6
 fi
 
 # Avoid gpg encryption file duplicates
@@ -182,9 +218,7 @@ fi
 
 # Archive and encrypt
 echo -e "${_LCYAN}Archiving...${_NC}"
-cd ${_source_dir}
-tar ${_tar_option} ${_output_fullpath} ${_source_base}
-cd -
+tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} .
 
 echo -e "${_LCYAN}Encrypting...${_NC}"
 if [[ -z "${_passphrase}" ]]; then
@@ -194,7 +228,10 @@ else
     echo
     echo -e "${_LBLUE}==> ${_NC}Passphrase: ${_passphrase}"
 fi
+
+echo -e "${_LCYAN}Cleanup...${_NC}"
 rm ${_output_fullpath}
+rm -rf ${_TEMP_SOURCE}
 
 echo
 echo -e "${_LCYAN}Archive and encrypt done${_NC}"

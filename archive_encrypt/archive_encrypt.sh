@@ -69,6 +69,13 @@ random_password() {
 _SCRIPT=$(basename ${0})
 _CONFIG_FILE=./archive_encrypt.conf
 
+_NC='\033[0m'
+_ORANGE='\033[0;33m'
+_LRED='\033[1;31m'
+_YELLOW='\033[1;33m'
+_LBLUE='\033[1;34m'
+_LCYAN='\033[1;36m'
+
 # Command line options
 while :; do
     case ${1} in
@@ -81,7 +88,7 @@ while :; do
                 _CONFIG_FILE=${2}
                 shift
             else
-                echo 'ERROR: "--config" requires a non-empty option argument.' 1>&2
+                echo -e "[${_LRED}ERROR${_NC}] '--config' requires a non-empty option argument." 1>&2
                 exit 1
             fi
             ;;
@@ -89,11 +96,11 @@ while :; do
             _CONFIG_FILE=${1#*=} # Delete everything up to "=" and assign the remainder
             ;;
         --config=)
-            echo 'ERROR: "--config" requires a non-empty option argument.' 1>&2
+            echo -e "[${_LRED}ERROR${_NC}] '--config' requires a non-empty option argument." 1>&2
             exit 1
             ;;
         -?*)
-            echo "WARN: Unknown option (ignored): ${1}" 1>&2
+            echo -e "[${_YELLOW}WARN${_NC}] Unknown option (ignored): ${1}" 1>&2
             ;;
         *)  # Default case: no more options
             break
@@ -109,7 +116,7 @@ done
 
 # Config file
 if [[ ! -f "${_CONFIG_FILE}" ]]; then
-    echo "Info: ${_CONFIG_FILE} file for configuration not found"
+    echo -e "[${_ORANGE}Info${_NC}] ${_CONFIG_FILE} file for configuration not found"
     exit 2
 fi
 source ${_CONFIG_FILE}
@@ -117,19 +124,19 @@ source ${_CONFIG_FILE}
 # tar command
 which tar 1> /dev/null
 if [[ "${?}" -ne 0 ]]; then
-    echo "No such command: tar"
+    echo -e "[${_ORANGE}Info${_NC}] No such command: tar"
     exit 3
 fi
 # gpg command
 which gpg 1> /dev/null
 if [[ "${?}" -ne 0 ]]; then
-    echo "No such command: gpg"
+    echo -e "[${_ORANGE}Info${_NC}] No such command: gpg"
     exit 3
 fi
 
 # Destination directory
 if [[ -z "${_DESTINATION_DIR}" || ! -d "${_DESTINATION_DIR}" ]]; then
-    echo "Info: Config _DESTINATION_DIR no value or not exist"
+    echo -e "[${_ORANGE}Info${_NC}] Config _DESTINATION_DIR no value or not exist"
     exit 4
 fi
 
@@ -141,12 +148,14 @@ fi
 
 # Check encrypt method
 shopt -s nocasematch
-if [[ "${_ENCRYPT_METHOD}" == "bzip2" ]]; then
+if [[ "${_COMPRESS_METHOD}" == "bzip2" ]]; then
     _tar_option='-jcf'
-elif [[ "${_ENCRYPT_METHOD}" == "xz" ]]; then
+elif [[ "${_COMPRESS_METHOD}" == "xz" ]]; then
     _tar_option='-Jcf'
-else 
+elif [[ "${_COMPRESS_METHOD}" == "gzip" ]]; then
     _tar_option='-zcf'
+else 
+    _tar_option='-cf'
 fi
 
 
@@ -162,7 +171,7 @@ _source_base=$(basename ${_source})
 
 # Source directory/file
 if [[ -e "${source}" ]]; then
-    echo "Info: Source ${_source} does not exist"
+    echo -e "[${_ORANGE}Info${_NC}] Source ${_source} does not exist"
     exit 5
 fi
 
@@ -172,20 +181,20 @@ if [[ -f "${_output_fullpath}.gpg" ]]; then
 fi
 
 # Archive and encrypt
-echo "Archiving..."
+echo -e "${_LCYAN}Archiving...${_NC}"
 cd ${_source_dir}
 tar ${_tar_option} ${_output_fullpath} ${_source_base}
 cd -
 
-echo "Encrypting..."
+echo -e "${_LCYAN}Encrypting...${_NC}"
 if [[ -z "${_passphrase}" ]]; then
     gpg -c --batch --passphrase-file ${_PASSPHRASE_FILE} ${_output_fullpath}
 else
     gpg -c --batch --passphrase "${_passphrase}" ${_output_fullpath}
     echo
-    echo "Passphrase: ${_passphrase}"
+    echo -e "${_LBLUE}==> ${_NC}Passphrase: ${_passphrase}"
 fi
 rm ${_output_fullpath}
 
 echo
-echo "Archive and encrypt done"
+echo -e "${_LCYAN}Archive and encrypt done${_NC}"

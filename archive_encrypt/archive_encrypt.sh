@@ -20,7 +20,10 @@
 #   5 - Temp source directory exist
 #   6 - Skip process with no sources
 #
-# Version: 0.1.2
+#   11 - Function error: random_password
+#   12 - Function error: tee_logger
+#
+# Version: 0.1.3
 
 
 # ----------------------------------------------------------------------------
@@ -50,7 +53,7 @@ EOF
 # ----------------------------------------------------------------------------
 random_password() {
     if [[ "${#}" -ne 1 && "${#}" -ne 2 ]]; then
-        echo "Usage: random_password PASSWORD_LENGTH [CHARACTER_SET]"
+        echo "Usage: random_password PASSWORD_LENGTH [CHARACTER_SET]" 1>&2
         exit 11
     fi
 
@@ -65,20 +68,91 @@ random_password() {
 }
 
 
+# ---------------------------------------------------------------
+# Function definition
+#
+# Usage: tee_logger LEVEL MESSAGE LOG_PATH
+#
+# LEVEL:
+#   - echo (STDOUT, lblue)
+#   - status (STDOUT, lcyan)
+#   - info (STDOUT, orange)
+#   - warning (STDERR, yellow)
+#   - error (STDERR, lred)
+# ---------------------------------------------------------------
+logger_switch() {
+
+    if [[ "${#}" -ne 3 && "${#}" -ne 2 ]]; then
+        echo "Usage: tee_logger LEVEL MESSAGE [LOG_PATH]" 1>&2
+        exit 12
+    fi
+
+    _nc='\033[0m'
+    _orange='\033[0;33m'
+    _lred='\033[1;31m'
+    _yellow='\033[1;33m'
+    _lblue='\033[1;34m'
+    _lcyan='\033[1;36m'
+
+    _level=${1}
+    _message=${2}
+
+    if [[ "${#}" -eq 3 ]]; then
+        _log_path=${3}
+        _log_dir=$(dirname ${_log_path})
+    fi
+
+    if [[ ! -d "${_log_dir}" || "${#}" -eq 2 ]]; then
+        case ${_level,,} in
+            status)
+                echo -e "${_lcyan}${_message}${_nc}" 
+                ;;
+            echo)
+                echo -e "${_lblue}==> ${_nc}${_message}" 
+                ;;
+            info)
+                echo -e "[${_orange}INFO${_nc}] ${_message}" 
+                ;;
+            warning)
+                echo -e "[${_yellow}WARN${_nc}] ${_message}" 1>&2
+                ;;
+            error)
+                echo -e "[${_lred}ERROR${_nc}] ${_message}" 1>&2
+                ;;
+            *)
+                echo -e "[${_lred}ERROR${_nc}] ${_message}" 1>&2
+                ;;
+        esac
+    else
+        case ${_level,,} in
+            status)
+                echo "${_message}" >> ${_log_path}
+                ;;
+            echo)
+                echo "==> ${_message}" >> ${_log_path}
+                ;;
+            info)
+                echo "[INFO] ${_message}" >> ${_log_path}
+                ;;
+            warning)
+                echo "[WARN] ${_message}" >> ${_log_path}
+                ;;
+            error)
+                echo "[ERROR] ${_message}" >> ${_log_path}
+                ;;
+            *)
+                echo "[ERROR] ${_message}" >> ${_log_path}
+        esac
+    fi
+}
+
 
 # Environment variables
-_VERSION="0.1.2"
+_VERSION="0.1.3"
 _SCRIPT=$(basename ${0})
 
 _CONFIG_FILE=./archive_encrypt.conf
 _TEMP_SOURCE="/tmp/archive-envcrypt_$(date +%Y%m%d-%H%M%S)"
-
-_NC='\033[0m'
-_ORANGE='\033[0;33m'
-_LRED='\033[1;31m'
-_YELLOW='\033[1;33m'
-_LBLUE='\033[1;34m'
-_LCYAN='\033[1;36m'
 
 # Command line options
 while :; do
@@ -96,7 +170,7 @@ while :; do
                 _CONFIG_FILE=${2}
                 shift
             else
-                echo -e "[${_LRED}ERROR${_NC}] '--config' requires a non-empty option argument." 1>&2
+                echo -e "[ERROR] '--config' requires a non-empty option argument." 1>&2
                 exit 1
             fi
             ;;
@@ -104,11 +178,11 @@ while :; do
             _CONFIG_FILE=${1#*=} # Delete everything up to "=" and assign the remainder
             ;;
         --config=)
-            echo -e "[${_LRED}ERROR${_NC}] '--config' requires a non-empty option argument." 1>&2
+            echo -e "[ERROR] '--config' requires a non-empty option argument." 1>&2
             exit 1
             ;;
         -?*)
-            echo -e "[${_YELLOW}WARN${_NC}] Unknown option (ignored): ${1}" 1>&2
+            echo -e "[WARN] Unknown option (ignored): ${1}" 1>&2
             ;;
         *)  # Default case: no more options
             break
@@ -121,10 +195,9 @@ done
 # Requirements testing
 # --------------------
 
-
 # Config file
 if [[ ! -f "${_CONFIG_FILE}" ]]; then
-    echo -e "[${_ORANGE}Info${_NC}] ${_CONFIG_FILE} file for configuration not found"
+    echo -e "[Info] ${_CONFIG_FILE} file for configuration not found" 1>&2
     exit 2
 fi
 source ${_CONFIG_FILE}
@@ -132,25 +205,25 @@ source ${_CONFIG_FILE}
 # tar command
 which tar 1> /dev/null
 if [[ "${?}" -ne 0 ]]; then
-    echo -e "[${_ORANGE}Info${_NC}] No such command: tar"
+    logger_switch info "No such command: tar" ${_OUTPUT_LOG}
     exit 3
 fi
 # gpg command
 which gpg 1> /dev/null
 if [[ "${?}" -ne 0 ]]; then
-    echo -e "[${_ORANGE}Info${_NC}] No such command: gpg"
+    logger_switch info "No such command: gpg" ${_OUTPUT_LOG}
     exit 3
 fi
 
 # Destination directory
 if [[ -z "${_DESTINATION_DIR}" || ! -d "${_DESTINATION_DIR}" ]]; then
-    echo -e "[${_ORANGE}Info${_NC}] Config _DESTINATION_DIR no value or not exist"
+    logger_switch info "Config _DESTINATION_DIR no value or not exist" ${_OUTPUT_LOG}
     exit 4
 fi
 
 # Temp source directory
 if [[ -d "${_TEMP_SOURCE}" ]]; then
-    echo -e "[${_ORANGE}Info${_NC}] ${_TEMP_SOURCE} already exist"
+    logger_switch info "${_TEMP_SOURCE} already exist" ${_OUTPUT_LOG}
     exit 5 
 fi
 mkdir ${_TEMP_SOURCE}
@@ -186,8 +259,8 @@ _sources=${@}
 
 for _source in ${_sources}; do
     if [[ ! -e "${_source}" ]]; then
-        echo -e "[${_ORANGE}Info${_NC}] Source ${_source} does not exist"
-        echo -e "${_LBLUE}==>${_NC} Skip ${_source}"
+        logger_switch info "Source ${_source} does not exist" ${_OUTPUT_LOG}
+        logger_switch info "Skip ${_source}" ${_OUTPUT_LOG}
         continue
     fi
 
@@ -195,18 +268,9 @@ for _source in ${_sources}; do
     cp -r ${_source} ${_TEMP_SOURCE}
 done
 
-# _source_dir=$(dirname ${_source})
-# _source_base=$(basename ${_source})
-
-# Source directory/file
-# if [[ -e "${source}" ]]; then
-#     echo -e "[${_ORANGE}Info${_NC}] Source ${_source} does not exist"
-#     exit 5
-# fi
-
 # Avoid for empty source directory 
 if [[ ! "$(ls -A ${_TEMP_SOURCE})" ]]; then
-    echo -e "[${_ORANGE}Info${_NC}] All sources not exist, skip process." 
+    logger_switch info "All sources not exist, skip process." 
     rmdir ${_TEMP_SOURCE}
     exit 6
 fi
@@ -217,21 +281,21 @@ if [[ -f "${_output_fullpath}.gpg" ]]; then
 fi
 
 # Archive and encrypt
-echo -e "${_LCYAN}Archiving...${_NC}"
+logger_switch status "Archiving..." ${_OUTPUT_LOG}
 tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} .
 
-echo -e "${_LCYAN}Encrypting...${_NC}"
+logger_switch status "Encrypting..." ${_OUTPUT_LOG}
 if [[ -z "${_passphrase}" ]]; then
     gpg -c --batch --passphrase-file ${_PASSPHRASE_FILE} ${_output_fullpath}
 else
     gpg -c --batch --passphrase "${_passphrase}" ${_output_fullpath}
-    echo
-    echo -e "${_LBLUE}==> ${_NC}Passphrase: ${_passphrase}"
+    logger_switch status "" ${_OUTPUT_LOG}
+    logger_switch echo "Passphrase: ${_passphrase}" ${_OUTPUT_LOG}
 fi
 
-echo -e "${_LCYAN}Cleanup...${_NC}"
+logger_switch status "Cleanup..." ${_OUTPUT_LOG}
 rm ${_output_fullpath}
 rm -rf ${_TEMP_SOURCE}
 
-echo
-echo -e "${_LCYAN}Archive and encrypt done${_NC}"
+logger_switch status "" ${_OUTPUT_LOG}
+logger_switch status "Archive and encrypt done" ${_OUTPUT_LOG}

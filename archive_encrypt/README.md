@@ -2,7 +2,10 @@
 Archive and encrypt source files and directories
 
 ## Version
-#### v0.1.2
+#### v0.1.3
+- Separate logging format between standard and files
+
+v0.1.2
 - Ability to archive multiple sources
 - No compression option when archiving
 - Colored output
@@ -20,11 +23,17 @@ Run `setup.sh` script for installation
 ```
 
 ## Configuration
+Configuration file need to be update if current version < v0.1.3
+
 `archive_encrypt.conf`
 - `_DESTINATION_DIR` : Encrypted file output directory 
 - `_COMPRESS_METHOD` : gzip / bzip2 / xz (Default - no compression)
 - `_PASSPHRASE_FILE` : Passphrase storing file which is use for encryption
     - Generate random passphrase if not given
+- `_OUTPUT_LOG` :  stdout log file location
+    - Output to STDOUT if not given
+- `_ERROR_LOG` : stderr log file location
+    - Output to STDERR if not given
 
 ## Usage
 ```bash

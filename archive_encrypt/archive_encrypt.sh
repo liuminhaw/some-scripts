@@ -18,12 +18,13 @@
 #   3 - Missing command
 #   4 - Config file environment error
 #   5 - Temp source directory exist
-#   6 - Skip process with no sources
+#   6 - Input source error
+#   7 - Decryption error
 #
 #   11 - Function error: random_password
 #   12 - Function error: tee_logger
 #
-# Version: 0.1.3
+# Version: 0.2.0
 
 
 # ----------------------------------------------------------------------------
@@ -34,11 +35,13 @@
 show_help() {
 cat << EOF
 Usage: ${0##*/} [--help] [--version] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCES...
+Usage: ${0##*/} --decrypt [--config=CONFIG_FILE] ENCRYPTED_SOURCE
 
     --help                  Display this help message and exit
     --config=CONFIG_FILE
     --config CONFIG_FILE    Secify config file to read when running the script
                             Default config file: ./archive_encrypt.conf
+    --decrypt               Run decrytion from encrypted file
     --version               Show version information
 EOF
 }
@@ -148,10 +151,11 @@ logger_switch() {
 
 
 # Environment variables
-_VERSION="0.1.3"
+_VERSION="0.2.0"
 _SCRIPT=$(basename ${0})
 
 _CONFIG_FILE=./archive_encrypt.conf
+_DECRYPTION="false"
 _TEMP_SOURCE="/tmp/archive-envcrypt_$(date +%Y%m%d-%H%M%S)"
 
 # Command line options
@@ -180,6 +184,9 @@ while :; do
         --config=)
             echo -e "[ERROR] '--config' requires a non-empty option argument." 1>&2
             exit 1
+            ;;
+        --decrypt)
+            _DECRYPTION="true"
             ;;
         -?*)
             echo -e "[WARN] Unknown option (ignored): ${1}" 1>&2
@@ -228,74 +235,126 @@ if [[ -d "${_TEMP_SOURCE}" ]]; then
 fi
 mkdir ${_TEMP_SOURCE}
 
-# Passphrase file 
-# Generate random passphrase if no passphrase commited
-if [[ -z "${_PASSPHRASE_FILE}" || ! -f "${_PASSPHRASE_FILE}" ]]; then
-    _passphrase=$(random_password 17)
-fi
-
-# Check encrypt method
-shopt -s nocasematch
-if [[ "${_COMPRESS_METHOD}" == "bzip2" ]]; then
-    _tar_option='-jcf'
-elif [[ "${_COMPRESS_METHOD}" == "xz" ]]; then
-    _tar_option='-Jcf'
-elif [[ "${_COMPRESS_METHOD}" == "gzip" ]]; then
-    _tar_option='-zcf'
-else 
-    _tar_option='-cf'
-fi
 
 
-if [[ "${#}" -lt 2 ]]; then
+# if [[ "${_DECRYPTION}" == "false" && "${#}" -lt 2 ]]; then
+#     show_help
+#     exit 1
+# elif [[ "${_DECRYPTION}" == "true" && "${#}" -ne 1 ]]; then
+#     show_help
+#     exit 1
+# fi
+
+if [[ "${_DECRYPTION}" == "false" && "${#}" -ge 2 ]]; then
+    # Valid encryption input
+    _output_filename=${1}
+    _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
+
+    shift 1
+    _sources=${@}
+elif [[ "${_DECRYPTION}" == "true" && "${#}" -eq 1 ]]; then
+    # Valid decryption input
+    _source=${1}
+else
     show_help
     exit 1
 fi
-_output_filename=${1}
-_output_fullpath=${_DESTINATION_DIR}/${_output_filename}
 
-shift 1
-_sources=${@}
+# Archive and encryption process
+if [[ "${_DECRYPTION}" == "false" ]]; then
+    logger_switch echo "Archive and encrypt start" ${_OUTPUT_LOG}
 
-for _source in ${_sources}; do
-    if [[ ! -e "${_source}" ]]; then
-        logger_switch info "Source ${_source} does not exist" ${_OUTPUT_LOG}
-        logger_switch info "Skip ${_source}" ${_OUTPUT_LOG}
-        continue
+    # Passphrase file 
+    # Generate random passphrase if no passphrase commited
+    if [[ -z "${_PASSPHRASE_FILE}" || ! -f "${_PASSPHRASE_FILE}" ]]; then
+        _passphrase=$(random_password 21)
     fi
 
-    # Copy source to temp source destination
-    cp -r ${_source} ${_TEMP_SOURCE}
-done
+    # Check compress method
+    shopt -s nocasematch
+    if [[ "${_COMPRESS_METHOD}" == "bzip2" ]]; then
+        _tar_option='-jcf'
+    elif [[ "${_COMPRESS_METHOD}" == "xz" ]]; then
+        _tar_option='-Jcf'
+    elif [[ "${_COMPRESS_METHOD}" == "gzip" ]]; then
+        _tar_option='-zcf'
+    else 
+        _tar_option='-cf'
+    fi
 
-# Avoid for empty source directory 
-if [[ ! "$(ls -A ${_TEMP_SOURCE})" ]]; then
-    logger_switch info "All sources not exist, skip process." 
-    rmdir ${_TEMP_SOURCE}
-    exit 6
-fi
+    for _source in ${_sources}; do
+        if [[ ! -e "${_source}" ]]; then
+            logger_switch info "Source ${_source} does not exist" ${_OUTPUT_LOG}
+            logger_switch info "Skip ${_source}" ${_OUTPUT_LOG}
+            continue
+        fi
 
-# Avoid gpg encryption file duplicates
-if [[ -f "${_output_fullpath}.gpg" ]]; then
-    rm ${_output_fullpath}.gpg
-fi
+        # Copy source to temp source destination
+        cp -r ${_source} ${_TEMP_SOURCE}
+    done
 
-# Archive and encrypt
-logger_switch status "Archiving..." ${_OUTPUT_LOG}
-tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} .
+    # Avoid for empty source directory 
+    if [[ ! "$(ls -A ${_TEMP_SOURCE})" ]]; then
+        logger_switch info "All sources not exist, skip process." 
+        rmdir ${_TEMP_SOURCE}
+        exit 6
+    fi
 
-logger_switch status "Encrypting..." ${_OUTPUT_LOG}
-if [[ -z "${_passphrase}" ]]; then
-    gpg -c --batch --passphrase-file ${_PASSPHRASE_FILE} ${_output_fullpath}
-else
-    gpg -c --batch --passphrase "${_passphrase}" ${_output_fullpath}
+    # Avoid gpg encryption file duplicates
+    if [[ -f "${_output_fullpath}.gpg" ]]; then
+        rm ${_output_fullpath}.gpg
+    fi
+
+    # Archive and encrypt
+    logger_switch status "Archiving..." ${_OUTPUT_LOG}
+    tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} .
+
+    logger_switch status "Encrypting..." ${_OUTPUT_LOG}
+    if [[ -z "${_passphrase}" ]]; then
+        gpg -c --batch --passphrase-file ${_PASSPHRASE_FILE} ${_output_fullpath}
+    else
+        gpg -c --batch --passphrase "${_passphrase}" ${_output_fullpath}
+        logger_switch status "" ${_OUTPUT_LOG}
+        logger_switch echo "Passphrase: ${_passphrase}" ${_OUTPUT_LOG}
+    fi
+
+    logger_switch status "Cleanup..." ${_OUTPUT_LOG}
+    rm ${_output_fullpath}
+    rm -rf ${_TEMP_SOURCE}
+
     logger_switch status "" ${_OUTPUT_LOG}
-    logger_switch echo "Passphrase: ${_passphrase}" ${_OUTPUT_LOG}
+    logger_switch echo "Archive and encrypt done" ${_OUTPUT_LOG}
 fi
 
-logger_switch status "Cleanup..." ${_OUTPUT_LOG}
-rm ${_output_fullpath}
-rm -rf ${_TEMP_SOURCE}
+# Decryption process
+if [[ "${_DECRYPTION}" == "true" ]]; then
+    logger_switch echo "Decryption start" ${_OUTPUT_LOG}
 
-logger_switch status "" ${_OUTPUT_LOG}
-logger_switch status "Archive and encrypt done" ${_OUTPUT_LOG}
+    if [[ ! -f "${_source}" || "${_source##*.}" != "gpg" ]]; then
+        logger_switch warning "Input source is not a valid file" ${_OUTPUT_LOG}
+        exit 6
+    elif [[ "${_source##*.}" != "gpg" ]]; then
+        logger_switch warning "Input source file should end with extension .gpg" ${_OUTPUT_LOG}
+        exit 6
+    fi
+
+    _output_filename=$(basename ${_source%.*})
+    _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
+
+    if [[ -z "${_PASSPHRASE_FILE}" || ! -f "${_PASSPHRASE_FILE}" ]]; then
+        read -sp 'Decrypt password: ' _passphrase
+        echo ""
+        gpg -d --batch --passphrase "${_passphrase}" ${_source} > ${_output_fullpath}
+    else
+        gpg -d --batch --passphrase-file ${_PASSPHRASE_FILE} ${_source} > ${_output_fullpath}
+    fi
+
+    # Check decrypt result
+    if [[ ${?} -ne 0 ]]; then
+        logger_switch error "Failed to decrypt file" ${_OUTPUT_LOG}
+        exit 7
+    fi
+
+    logger_switch status "" ${_OUTPUT_LOG}
+    logger_switch echo "Decryption done"
+fi

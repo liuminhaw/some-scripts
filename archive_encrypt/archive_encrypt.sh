@@ -100,6 +100,8 @@ logger_switch() {
     _level=${1}
     _message=${2}
 
+    _datetime=$(date +%Y-%m-%d\ %H:%M:%S)
+
     if [[ "${#}" -eq 3 ]]; then
         _log_path=${3}
         _log_dir=$(dirname ${_log_path})
@@ -129,22 +131,22 @@ logger_switch() {
     else
         case ${_level,,} in
             status)
-                echo "${_message}" >> ${_log_path}
+                echo "[${_datetime}] ${_message}" >> ${_log_path}
                 ;;
             echo)
-                echo "==> ${_message}" >> ${_log_path}
+                echo "==> [${_datetime}] ${_message}" >> ${_log_path}
                 ;;
             info)
-                echo "[INFO] ${_message}" >> ${_log_path}
+                echo "[INFO] [${_datetime}] ${_message}" >> ${_log_path}
                 ;;
             warning)
-                echo "[WARN] ${_message}" >> ${_log_path}
+                echo "[WARN] [${_datetime}] ${_message}" >> ${_log_path}
                 ;;
             error)
-                echo "[ERROR] ${_message}" >> ${_log_path}
+                echo "[ERROR] [${_datetime}] ${_message}" >> ${_log_path}
                 ;;
             *)
-                echo "[ERROR] ${_message}" >> ${_log_path}
+                echo "[ERROR] [${_datetime}] ${_message}" >> ${_log_path}
         esac
     fi
 }
@@ -156,7 +158,7 @@ _SCRIPT=$(basename ${0})
 
 _CONFIG_FILE=./archive_encrypt.conf
 _DECRYPTION="false"
-_TEMP_SOURCE="/tmp/archive-envcrypt_$(date +%Y%m%d-%H%M%S)"
+_TEMP_SOURCE="/tmp/archive-encrypt_$(date +%Y%m%d-%H%M%S)"
 
 # Command line options
 while :; do
@@ -228,15 +230,6 @@ if [[ -z "${_DESTINATION_DIR}" || ! -d "${_DESTINATION_DIR}" ]]; then
     exit 4
 fi
 
-# Temp source directory
-if [[ -d "${_TEMP_SOURCE}" ]]; then
-    logger_switch info "${_TEMP_SOURCE} already exist" ${_OUTPUT_LOG}
-    exit 5 
-fi
-mkdir ${_TEMP_SOURCE}
-
-
-
 # if [[ "${_DECRYPTION}" == "false" && "${#}" -lt 2 ]]; then
 #     show_help
 #     exit 1
@@ -263,6 +256,13 @@ fi
 # Archive and encryption process
 if [[ "${_DECRYPTION}" == "false" ]]; then
     logger_switch echo "Archive and encrypt start" ${_OUTPUT_LOG}
+
+    # Temp source directory
+    if [[ -d "${_TEMP_SOURCE}" ]]; then
+        logger_switch info "${_TEMP_SOURCE} already exist" ${_OUTPUT_LOG}
+        exit 5 
+    fi
+    mkdir ${_TEMP_SOURCE}
 
     # Passphrase file 
     # Generate random passphrase if no passphrase commited
@@ -322,7 +322,6 @@ if [[ "${_DECRYPTION}" == "false" ]]; then
     rm ${_output_fullpath}
     rm -rf ${_TEMP_SOURCE}
 
-    logger_switch status "" ${_OUTPUT_LOG}
     logger_switch echo "Archive and encrypt done" ${_OUTPUT_LOG}
 fi
 
@@ -338,15 +337,23 @@ if [[ "${_DECRYPTION}" == "true" ]]; then
         exit 6
     fi
 
+    # Decrypt
+    logger_switch status "Decrypting..." ${_OUTPUT_LOG}
     _output_filename=$(basename ${_source%.*})
     _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
+
+    # Check output file existence
+    if [[ -f "${_output_fullpath}" ]]; then
+        logger_switch info "${_output_fullpath} existed, will be overwritten" ${_OUTPUT_LOG}
+        rm ${_output_fullpath}
+    fi
 
     if [[ -z "${_PASSPHRASE_FILE}" || ! -f "${_PASSPHRASE_FILE}" ]]; then
         read -sp 'Decrypt password: ' _passphrase
         echo ""
-        gpg -d --batch --passphrase "${_passphrase}" ${_source} > ${_output_fullpath}
+        gpg -qo ${_output_fullpath} -d --batch --passphrase "${_passphrase}" ${_source}
     else
-        gpg -d --batch --passphrase-file ${_PASSPHRASE_FILE} ${_source} > ${_output_fullpath}
+        gpg -qo ${_output_fullpath} -d --batch --passphrase-file ${_PASSPHRASE_FILE} ${_source}
     fi
 
     # Check decrypt result
@@ -355,6 +362,5 @@ if [[ "${_DECRYPTION}" == "true" ]]; then
         exit 7
     fi
 
-    logger_switch status "" ${_OUTPUT_LOG}
-    logger_switch echo "Decryption done"
+    logger_switch echo "Decryption done" ${_OUTPUT_LOG}
 fi

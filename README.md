@@ -7,6 +7,12 @@ Some simple shell scripts that may or may not make life easier
 - Version 0.1.3
 - Archive and encrypt source files and directories
 
+## Permission Modification
+
+`mod_perm`
+- Version 0.1.0
+- Modify permission of file and directory recursively in given source path
+
 ## Random Password Generate
 
 `random_password`

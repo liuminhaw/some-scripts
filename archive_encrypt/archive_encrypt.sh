@@ -12,18 +12,6 @@
 #   - Use tar command for archive and compress
 #   - Use gpg command for encryption
 #
-# Exit code:
-#   1 - Usage error
-#   2 - Config file not found
-#   3 - Missing command
-#   4 - Config file environment error
-#   5 - Temp source directory exist
-#   6 - Input source error
-#   7 - Decryption error
-#
-#   11 - Function error: random_password
-#   12 - Function error: tee_logger
-#
 # Version: 0.2.0
 
 

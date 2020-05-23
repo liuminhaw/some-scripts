@@ -122,19 +122,19 @@ logger_switch() {
                 echo "[${_datetime}] ${_message}" >> ${_log_path}
                 ;;
             echo)
-                echo "==> [${_datetime}] ${_message}" >> ${_log_path}
+                echo "[${_datetime}] ==> ${_message}" >> ${_log_path}
                 ;;
             info)
-                echo "[INFO] [${_datetime}] ${_message}" >> ${_log_path}
+                echo "[${_datetime}] [INFO] ${_message}" >> ${_log_path}
                 ;;
             warning)
-                echo "[WARN] [${_datetime}] ${_message}" >> ${_log_path}
+                echo "[${_datetime}] [WARN] ${_message}" >> ${_log_path}
                 ;;
             error)
-                echo "[ERROR] [${_datetime}] ${_message}" >> ${_log_path}
+                echo "[${_datetime}] [ERROR] ${_message}" >> ${_log_path}
                 ;;
             *)
-                echo "[ERROR] [${_datetime}] ${_message}" >> ${_log_path}
+                echo "[${_datetime}] [ERROR] ${_message}" >> ${_log_path}
         esac
     fi
 }
@@ -218,21 +218,22 @@ if [[ -z "${_DESTINATION_DIR}" || ! -d "${_DESTINATION_DIR}" ]]; then
     exit 4
 fi
 
-# if [[ "${_DECRYPTION}" == "false" && "${#}" -lt 2 ]]; then
-#     show_help
-#     exit 1
-# elif [[ "${_DECRYPTION}" == "true" && "${#}" -ne 1 ]]; then
-#     show_help
-#     exit 1
-# fi
-
 if [[ "${_DECRYPTION}" == "false" && "${#}" -ge 2 ]]; then
     # Valid encryption input
     _output_filename=${1}
     _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
-
     shift 1
     _sources=${@}
+elif [[ "${_DECRYPTION}" == "false" && "${#}" -eq 1 ]]; then
+    # No SOURCES parameter, Check if any set in config file
+    if [[ -z "${_SOURCES}" ]]; then
+        show_help
+        exit 1
+    fi
+    # Valid encryption input
+    _output_filename=${1}
+    _output_fullpath=${_DESTINATION_DIR}/${_output_filename}
+    _sources=${_SOURCES[@]}
 elif [[ "${_DECRYPTION}" == "true" && "${#}" -eq 1 ]]; then
     # Valid decryption input
     _source=${1}
@@ -241,7 +242,9 @@ else
     exit 1
 fi
 
+# ------------------------------
 # Archive and encryption process
+# ------------------------------
 if [[ "${_DECRYPTION}" == "false" ]]; then
     logger_switch echo "Archive and encrypt start" ${_OUTPUT_LOG}
 
@@ -259,18 +262,18 @@ if [[ "${_DECRYPTION}" == "false" ]]; then
     fi
 
     # Check compress method
-    shopt -s nocasematch
-    if [[ "${_COMPRESS_METHOD}" == "bzip2" ]]; then
+    if [[ "${_COMPRESS_METHOD,,}" == "bzip2" ]]; then
         _tar_option='-jcf'
-    elif [[ "${_COMPRESS_METHOD}" == "xz" ]]; then
+    elif [[ "${_COMPRESS_METHOD,,}" == "xz" ]]; then
         _tar_option='-Jcf'
-    elif [[ "${_COMPRESS_METHOD}" == "gzip" ]]; then
+    elif [[ "${_COMPRESS_METHOD,,}" == "gzip" ]]; then
         _tar_option='-zcf'
     else 
         _tar_option='-cf'
     fi
 
     for _source in ${_sources}; do
+        logger_switch info "Executing source: ${_source}" ${_OUTPUT_LOG}
         if [[ ! -e "${_source}" ]]; then
             logger_switch info "Source ${_source} does not exist" ${_OUTPUT_LOG}
             logger_switch info "Skip ${_source}" ${_OUTPUT_LOG}
@@ -295,6 +298,7 @@ if [[ "${_DECRYPTION}" == "false" ]]; then
 
     # Archive and encrypt
     logger_switch status "Archiving..." ${_OUTPUT_LOG}
+    logger_switch echo "tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} ."
     tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} .
 
     logger_switch status "Encrypting..." ${_OUTPUT_LOG}

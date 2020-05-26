@@ -49,12 +49,14 @@ Usage: ./archive_encrypt.sh [--help] [--config=CONFIG_FILE] OUTPUT_FILENAME SOUR
 
 ## Exit Code
 - 1 - Usage error
-- 2 - Config file not found
+- 2 - Config file/directory not found
 - 3 - Missing command
-- 4 - Config file environment error
+- 4 - Config file setting error
 - 5 - Temp source directory exist
 - 6 - Input source error
 - 7 - Decryption error
 - 
 - 11 - Function error: random_password
-- 12 - Function error: tee_logger
+- 12 - Function error: logger_switch
+
+- 21 - Library script not found

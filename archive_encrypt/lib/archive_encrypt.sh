@@ -74,7 +74,7 @@ random_password() {
 logger_switch() {
 
     if [[ "${#}" -ne 3 && "${#}" -ne 2 ]]; then
-        echo "Usage: tee_logger LEVEL MESSAGE [LOG_PATH]" 1>&2
+        echo "Usage: logger_switch LEVEL MESSAGE [LOG_PATH]" 1>&2
         exit 12
     fi
 
@@ -286,7 +286,7 @@ if [[ "${_DECRYPTION}" == "false" ]]; then
 
     # Avoid for empty source directory 
     if [[ ! "$(ls -A ${_TEMP_SOURCE})" ]]; then
-        logger_switch info "All sources not exist, skip process." 
+        logger_switch info "All sources not exist, skip process." ${_OUTPUT_LOG}
         rmdir ${_TEMP_SOURCE}
         exit 6
     fi
@@ -298,7 +298,7 @@ if [[ "${_DECRYPTION}" == "false" ]]; then
 
     # Archive and encrypt
     logger_switch status "Archiving..." ${_OUTPUT_LOG}
-    logger_switch echo "tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} ."
+    logger_switch echo "tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} ." ${_OUTPUT_LOG}
     tar ${_tar_option} ${_output_fullpath} -C ${_TEMP_SOURCE} .
 
     logger_switch status "Encrypting..." ${_OUTPUT_LOG}

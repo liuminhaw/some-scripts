@@ -31,7 +31,7 @@ _ARCHIVE_ENCRYPT=./lib/archive_encrypt.sh
 logger_switch() {
 
     if [[ "${#}" -ne 3 && "${#}" -ne 2 ]]; then
-        echo "Usage: tee_logger LEVEL MESSAGE [LOG_PATH]" 1>&2
+        echo "Usage: logger_switch LEVEL MESSAGE [LOG_PATH]" 1>&2
         exit 12
     fi
 
@@ -125,6 +125,12 @@ fi
 # Process configs
 # ---------------
 
-for _config in $(ls ${_CONFIGS}/*.conf); do
-    echo "config file: ${_config}"
+# Test empty configs
+_config_files=$(find ${_CONFIGS} -type f -name *.conf)
+if [[ -z ${_config_files} ]]; then
+    logger_switch info "No config file found in ${_CONFIGS}, exit" ${_OUTPUT_LOG}
+    exit 2
+fi
+
+for _config in ${_config_files}; do
 done

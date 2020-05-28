@@ -22,15 +22,18 @@
 # ----------------------------------------------------------------------------
 show_help() {
 cat << EOF
-Usage: ${0##*/} [--help] [--version] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCES...
+Usage: ${0##*/} [--help] [--version] [--compress=COMPRESS_METHOD] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCES...
 Usage: ${0##*/} --decrypt [--config=CONFIG_FILE] ENCRYPTED_SOURCE
 
-    --help                  Display this help message and exit
+    --help                      Display this help message and exit
+    --compress=COMPRESS_METHOD
+    --compress COMPRESS_METHOD  Specify compress method when archiving (gzip, bzip2, xz)
+                                Default no compression if not set
     --config=CONFIG_FILE
-    --config CONFIG_FILE    Secify config file to read when running the script
-                            Default config file: ./archive_encrypt.conf
-    --decrypt               Run decrytion from encrypted file
-    --version               Show version information
+    --config CONFIG_FILE        Specify config file to read when running the script
+                                Default config file: ./archive_encrypt.conf
+    --decrypt                   Run decrytion from encrypted file
+    --version                   Show version information
 EOF
 }
 
@@ -159,6 +162,22 @@ while :; do
             echo "Version: ${_VERSION}"
             exit
             ;;
+        --compress)
+            if [[ "${2}" ]]; then
+                _COMPRESS_METHOD_ARG=${2}
+                shift
+            else
+                echo -e "[ERROR] '--compress' requires a non-empty option argument." 1>&2
+                exit 1
+            fi
+            ;;
+        --compress=?*)
+            _COMPRESS_METHOD_ARG=${1#*=} # Delete everything up to "=" and assign the remainder
+            ;;
+        --compress=)
+            echo -e "[ERROR] '--compress' requires a non-empty option argument." 1>&2
+            exit 1
+            ;;
         --config)
             if [[ "${2}" ]]; then
                 _CONFIG_FILE=${2}
@@ -262,6 +281,10 @@ if [[ "${_DECRYPTION}" == "false" ]]; then
     fi
 
     # Check compress method
+    if [[ ! -z "${_COMPRESS_METHOD_ARG}" ]]; then
+        _COMPRESS_METHOD=${_COMPRESS_METHOD_ARG}
+    fi
+
     if [[ "${_COMPRESS_METHOD,,}" == "bzip2" ]]; then
         _tar_option='-jcf'
     elif [[ "${_COMPRESS_METHOD,,}" == "xz" ]]; then

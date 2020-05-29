@@ -126,11 +126,58 @@ fi
 # ---------------
 
 # Test empty configs
-_config_files=$(find ${_CONFIGS} -type f -name *.conf)
+_config_files=$(find ${_CONFIGS} -type f -name "*.conf")
 if [[ -z ${_config_files} ]]; then
     logger_switch info "No config file found in ${_CONFIGS}, exit" ${_OUTPUT_LOG}
     exit 2
 fi
 
 for _config in ${_config_files}; do
+    logger_switch status "Config file: ${_config}" ${_OUTPUT_LOG}
+
+    # Extract compress method from config
+    _compress_cmd=$(grep ^_COMPRESS_METHOD ${_config})
+    if [[ "${?}" -ne 0 ]]; then
+        _COMPRESS_METHOD=
+    else
+        eval ${_compress_cmd} 
+    fi
+
+    # Output postfix
+    case ${_OUTPUT_POSTFIX,,} in
+        date)
+            _file_postfix="_$(date +%Y-%m-%d)"
+            ;;
+        datetime)
+            _file_postfix="_$(date +%Y%m%d-%H%M%S)"
+            ;;
+        *)
+            _file_postfix=""
+            ;;
+    esac 
+
+    # Output file extension
+    case ${_COMPRESS_METHOD,,} in
+        bzip2)
+            _file_ext=".tar.bzip2"
+            ;;
+        xz)
+            _file_ext=".tar.xz"
+            ;;
+        gzip)
+            _file_ext=".tar.gzip"
+            ;;
+        *)
+            _file_ext=".tar"
+            ;;
+    esac
+
+    # Output filename
+    _config_filename=$(basename ${_config})
+    _output_file=${_config_filename//.*}${_file_postfix}${_file_ext}
+    
+    # Archive encrypt process
+    logger_switch echo "${_ARCHIVE_ENCRYPT} --config=${_config} ${_output_file}" ${_OUTPUT_LOG}
+    ${_ARCHIVE_ENCRYPT} --config=${_config} ${_output_file}
+
 done

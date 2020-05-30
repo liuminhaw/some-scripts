@@ -1,4 +1,4 @@
-# archive_encrypt.conf
+# conf.template
 
 # environment variables configuration
 # _DESTINATION_DIR=/destination/example
@@ -18,8 +18,4 @@ _COMPRESS_METHOD=
 # Optional: output log file location
 # output to STDOUT and STDERR if not given
 _OUTPUT_LOG=
-
-# Optional: stderr log file location
-# output to STDERR if not given
-# _ERROR_LOG=
 

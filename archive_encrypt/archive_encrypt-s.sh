@@ -16,6 +16,21 @@ _CONFIG_FILE=./archive_encrypt-s.conf
 _ARCHIVE_ENCRYPT=./lib/archive_encrypt.sh
 
 
+# ----------------------------------------------------------------------------
+# Function definition
+#
+# Usage: show_help
+# ----------------------------------------------------------------------------
+show_help() {
+cat << EOF
+Usage: ${0##*/} [--help] [--version]
+
+    --help                      Display this help message and exit
+    --version                   Show version information
+EOF
+}
+
+
 # ---------------------------------------------------------------
 # Function definition
 #
@@ -95,6 +110,25 @@ logger_switch() {
         esac
     fi
 }
+
+
+# --------------------
+# Command line options
+# --------------------
+while :; do
+    case ${1} in
+        --help)
+            show_help
+            exit 
+            ;;
+        --version)
+            echo "Version: ${_VERSION}"
+            exit
+            ;;
+        *)  # Default case: no more options
+            break
+    esac
+done
 
 
 # --------------------

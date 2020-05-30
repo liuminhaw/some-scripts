@@ -82,6 +82,7 @@ _OUTPUT_LOG
 ## Usage
 
 #### archive_encrypt-s.sh
+Trigger `archive_encrypt.sh` script with multiple config files
 ```bash
 Usage: ./archive_encrypt-s.sh [--help] [--version]
 
@@ -90,6 +91,7 @@ Usage: ./archive_encrypt-s.sh [--help] [--version]
 ```
 
 #### archive_encrypt.sh
+Run simple archive_encrypt with given config
 ```bash
 Usage: ./archive_encrypt.sh [--help] [--config=CONFIG_FILE] OUTPUT_FILENAME SOURCE
 

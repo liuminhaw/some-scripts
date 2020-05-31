@@ -1,8 +1,12 @@
-# archive_encrypt.conf
+# conf.template
 
 # environment variables configuration
 # _DESTINATION_DIR=/destination/example
 _DESTINATION_DIR=
+
+# Optional: Given sources (as an array)
+# _SOURCES=(source1 source2 source3 ...)
+_SOURCES= 
 
 # Optional: Generate random passphrase if not given
 _PASSPHRASE_FILE=
@@ -11,11 +15,7 @@ _PASSPHRASE_FILE=
 # Default: no compression
 _COMPRESS_METHOD= 
 
-# Optional: stdout log file location
-# output to STDOUT if not given
+# Optional: output log file location
+# output to STDOUT and STDERR if not given
 _OUTPUT_LOG=
-
-# Optional: stderr log file location
-# output to STDERR if not given
-_ERROR_LOG=
 

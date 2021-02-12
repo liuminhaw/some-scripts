@@ -1,0 +1,15 @@
+# config
+
+# General
+_EXCLUDE_FILE="excludes.txt"
+_PASSWORD_FILE=".restic.pass"
+
+# sftp
+_SFTP="Host from ssh config file"
+_SFTP_DEST="Destination path for sftp repository"
+_SFTP_SRC="Source path for sftp repository"
+
+# local
+_LOCAL_DEST="Destination path for local repository"
+_LOCAL_SRC="Source path for local repository"
+

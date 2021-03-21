@@ -109,5 +109,5 @@ case ${SYSTEM_RELEASE} in
     exit 1
 esac
 
-echo "booking setup success."
+echo "restic-backup setup success."
 exit 0

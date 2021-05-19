@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script var
-_VERSION=0.0.1
+_VERSION=0.0.2
 
 # ----------------------------------------------------------------------------
 # Function definition
@@ -10,9 +10,10 @@ _VERSION=0.0.1
 # ----------------------------------------------------------------------------
 show_help() {
 cat << EOF
-Usage: ${0##*/} [--help] [--version] [--snapshots] [--type=local|sftp]
+Usage: ${0##*/} [--help] [--version] [--snapshots|--init] [--type=local|sftp]
     --help                      Display this help message and exit
     --snapshots                 Display snapshot history from 'type' destination
+    --init                      Initial backup destination
     --type=[local|sftp]         
     --type [local|sftp]         Specify backup destination type: (local, sftp)
                                 Default type: local
@@ -36,6 +37,9 @@ while :; do
             ;;
         --snapshots)
             _snapshot="true"
+            ;;
+        --init)
+            _init="true"
             ;;
         --type)
             if [[ "${2}" ]]; then
@@ -75,6 +79,11 @@ if [[ ! -z "${_backup_type}" && "${_backup_type}" -ne "local" && "${_backup_type
     exit 1
 fi
 
+if [[ "${_snapshot}" == "true" && "${_init}" == "true" ]]; then
+    show_help
+    exit 1
+fi
+
 # Backup
 if [[ "${_backup_type}" == "local" ]]; then
     _dest_repo="${_LOCAL_DEST}"
@@ -87,7 +96,9 @@ else
     exit 1
 fi
 
-if [[ "${_snapshot}" == "true" ]]; then
+if [[ "${_init}" == "true" ]]; then
+    restic init -r ${_dest_repo} --password-file ${_PASSWORD_FILE}
+elif [[ "${_snapshot}" == "true" ]]; then
     restic snapshots -r ${_dest_repo} --password-file ${_PASSWORD_FILE}
 else
     restic backup -v -r ${_dest_repo} --exclude-file="${_EXCLUDE_FILE}" --password-file ${_PASSWORD_FILE} ${_src_repo}

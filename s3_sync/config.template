@@ -1,0 +1,9 @@
+# config
+
+# Credential
+_ACCESS_KEY="S3 accesss key"
+_ACCESS_SECRET="S3 access secret"
+
+# Source & Destination
+_LOCAL="Local sync path"
+_S3_BUCKET="s3://SYNC_BUCKET_PATH"

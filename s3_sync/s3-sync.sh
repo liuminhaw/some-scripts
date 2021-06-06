@@ -10,8 +10,9 @@ _VERSION=0.1.0
 # ----------------------------------------------------------------------------
 show_help() {
 cat << EOF
-Usage: ${0##*/} [--help] pull|push
+Usage: ${0##*/} [--help] [--version] pull|push
     --help                      Display this help message and exit
+    --version                   Show version information
     pull                        Sync from S3 bucket to local
     push                        Sync from local to S3 bucket
 EOF
@@ -22,6 +23,10 @@ while :; do
     case ${1} in
         --help)
             show_help
+            exit
+            ;;
+        --version)
+            echo "Version: ${_VERSION}"
             exit
             ;;
         -?*)

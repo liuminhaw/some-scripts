@@ -25,4 +25,8 @@ Some simple shell scripts that may or may not make life easier
 - Version 0.1.0
 - Generate random password with given length
 
+## S3 Sync
 
+`s3_sync`
+- Version 0.1.0
+- Directory sync to and from s3. Use for files backup.

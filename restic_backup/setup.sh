@@ -64,7 +64,7 @@ function Installation() {
     fi
 
     if [[ ! -f "${DESTDIR}/excludes.txt" ]]; then
-        cp .restic.pass ${DESTDIR}/excludes.txt
+        cp excludes.txt ${DESTDIR}/excludes.txt
         checkCode 11 "Copy excludes.txt failed." > /dev/null
     fi
 }

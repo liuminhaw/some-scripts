@@ -10,7 +10,7 @@ Some simple shell scripts that may or may not make life easier
 ## Restic Backup
 
 `restic_bkp`
-- Version 0.0.1
+- Version 0.0.2
 - Using [restic](https://restic.readthedocs.io/en/latest/010_introduction.html) for automation backups
 
 ## Permission Modification

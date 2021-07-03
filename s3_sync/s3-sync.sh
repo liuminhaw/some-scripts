@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Script variables
-_VERSION=0.1.0
+_VERSION=0.1.1
+
+_config="config"
 
 # ----------------------------------------------------------------------------
 # Function definition
@@ -10,9 +12,10 @@ _VERSION=0.1.0
 # ----------------------------------------------------------------------------
 show_help() {
 cat << EOF
-Usage: ${0##*/} [--help] [--version] pull|push
+Usage: ${0##*/} [--help] [--version] [--config=CONFIG_FILE] pull|push
     --help                      Display this help message and exit
     --version                   Show version information
+    --config=CONFIG_FILE        Specify which config file to read from
     pull                        Sync from S3 bucket to local
     push                        Sync from local to S3 bucket
 EOF
@@ -28,6 +31,22 @@ while :; do
         --version)
             echo "Version: ${_VERSION}"
             exit
+            ;;
+        --config)
+            if [[ "${2}" ]]; then
+                _config=${2}
+                shift
+            else
+                echo -e "[ERROR] '--config' requires a non-empty option argument." 1>&2
+                exit 1
+            fi
+            ;;
+        --config=?*)
+            _config=${1#*=} # Delete everything up to "=" and assign the remainder
+            ;;
+        --config=)
+            echo -e "[ERROR] '--config' requires a non-empty option argument." 1>&2
+            exit 1
             ;;
         -?*)
             echo -e "[WARN] Unknown option (ignored): ${1}" 1>&2
@@ -47,11 +66,11 @@ if [[ "${#}" -ne 1 ]]; then
 fi
 
 # Read configuration
-if [[ ! -f "config" ]]; then
-    echo "config not found"
+if [[ ! -f "${_config}" ]]; then
+    echo "config file: ${_config} not found"
     exit 2
 fi
-source config
+source ${_config}
 
 
 _sync_direction=${1}

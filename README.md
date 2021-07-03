@@ -28,5 +28,5 @@ Some simple shell scripts that may or may not make life easier
 ## S3 Sync
 
 `s3_sync`
-- Version 0.1.0
+- Version 0.1.1
 - Directory sync to and from s3. Use for files backup.

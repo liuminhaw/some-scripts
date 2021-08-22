@@ -16,6 +16,17 @@ Sync directory to s3 bucket
 ## Pre-requisite
 `age` need to be installed if using `--age` option to encrypt/decrypt files: [age](https://github.com/FiloSottile/age/releases)
 
+### age key generation
+Private key file
+```sh
+age-keygen -o keyname.key
+```
+Public key file
+```sh
+# put age-keygen generated output (public key) to file - keyname.pub
+echo "public key content" > keyname.pub
+```
+
 ## Configuration
 `config` file should be exist in current working directory for the script to read configuration information, or specify config file with `--config` option.
 
@@ -33,8 +44,18 @@ Usage: s3-sync.sh [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE
     push                        Sync from local to S3 bucket
 ```
 
+**push with encryption**
+```sh
+s3-sync.sh --age keyname.key push
+```
+
+**pull with decryption**
+```sh
+s3-sync.sh --age keyname.pub pull
+```
+
 
 ## Exit code
-1 - Usage error
-2 - Missing config
-3 - age usage error
+1 - Usage error  
+2 - Missing config  
+3 - age usage error  

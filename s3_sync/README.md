@@ -3,8 +3,11 @@ Sync directory to s3 bucket
 
 ## Version
 ### v0.2.0
-- `--age` option to encrypt files with age before upload
-- `--age` option to decrypt files with age after download
+- `--age` option
+    - encrypt files with `age` program before sync push
+    - decrypt files with `age` program after sync pull
+- `--file-perm` option to set files permission after sync pull
+- `--dir-perm` option to set directories permission after sync pull
 
 #### v0.1.1
 - `--config` option specify config file to read
@@ -17,11 +20,11 @@ Sync directory to s3 bucket
 `age` need to be installed if using `--age` option to encrypt/decrypt files: [age](https://github.com/FiloSottile/age/releases)
 
 ### age key generation
-Private key file
+ Generate private key file
 ```sh
 age-keygen -o keyname.key
 ```
-Public key file
+Generate public key file
 ```sh
 # put age-keygen generated output (public key) to file - keyname.pub
 echo "public key content" > keyname.pub
@@ -34,14 +37,18 @@ Details for configuration can be referenced in `config.template` file
 
 ## Usage
 ```
-Usage: s3-sync.sh [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE] pull|push
-    --help                      Display this help message and exit
-    --version                   Show version information
-    --config=CONFIG_FILE        Specify which config file to read from
-                                Default file: config
-    --age=AGE_KEYFILE           Add encryption with age using key file 
-    pull                        Sync from S3 bucket to local
-    push                        Sync from local to S3 bucket
+Usage: 
+s3-sync.sh [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE] push
+s3-sync.sh [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE] [--file-perm=NUMERIC_PERM] [--dir-perm=NUMERIC_PERM] pull
+    --help                          Display this help message and exit
+    --version                       Show version information
+    --config=CONFIG_FILE            Specify which config file to read from
+                                    Default file: config
+    --age=AGE_KEYFILE               Add encryption with age using key file 
+    --file-perm=NUMERIC_PERM        Set files permission to NUMERIC_PERM (Eg. 664) 
+    --dir-perm=NUMERIC_PERM         Set directory permission to NUMERIC_PERM (Eg. 775)
+    pull                            Sync from S3 bucket to local
+    push                            Sync from local to S3 bucket
 ```
 
 **push with encryption**

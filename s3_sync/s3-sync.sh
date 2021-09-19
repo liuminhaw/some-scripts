@@ -13,14 +13,18 @@ _config="config"
 # ----------------------------------------------------------------------------
 show_help() {
 cat << EOF
-Usage: ${0##*/} [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE] pull|push
-    --help                      Display this help message and exit
-    --version                   Show version information
-    --config=CONFIG_FILE        Specify which config file to read from
-                                Default file: config
-    --age=AGE_KEYFILE           Add encryption with age using key file 
-    pull                        Sync from S3 bucket to local
-    push                        Sync from local to S3 bucket
+Usage: 
+${0##*/} [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE] push
+${0##*/} [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE] [--file-perm=NUMERIC_PERM] [--dir-perm=NUMERIC_PERM] pull
+    --help                          Display this help message and exit
+    --version                       Show version information
+    --config=CONFIG_FILE            Specify which config file to read from
+                                    Default file: config
+    --age=AGE_KEYFILE               Add encryption with age using key file 
+    --file-perm=NUMERIC_PERM        Set files permission to NUMERIC_PERM (Eg. 664) 
+    --dir-perm=NUMERIC_PERM         Set directory permission to NUMERIC_PERM (Eg. 775)
+    pull                            Sync from S3 bucket to local
+    push                            Sync from local to S3 bucket
 EOF
 }
 
@@ -84,6 +88,36 @@ age_clean() {
     rm -rf ${_age_dir}
 }
 
+mod_perm() {
+    if [[ ${#} -ne 3 ]]; then
+        echo -e "[ERROR] Function mod_perm usage error"
+        exit 4
+    fi
+
+    local _path=${1}
+    local _perm=${2}
+    local _type=${3}
+
+    if [[ "${_type,,}" == "file" ]]; then
+        _type="f"
+    elif [[ "${_type,,}" == "directory" ]]; then
+        _type="d"
+    else
+        echo -e "[ERROR] Third parameter in mod_perm function should be 'file' of 'directory'"
+        exit 4
+    fi
+
+    while read _name; do
+        if [[ "${_name}" == "${_path}" ]]; then
+            continue
+        fi
+
+        echo -e "[INFO] Change ${_name} permission to ${_perm}"
+        chmod ${_perm} ${_name}
+    done < <(find ${_path} -type ${_type})
+}
+
+
 # Command line options
 while :; do
     case ${1} in
@@ -125,6 +159,38 @@ while :; do
             ;;
         --age=)
             echo -e "[ERROR] '--age' requires a non-empty option argument." 1>&2
+            exit 1
+            ;;
+        --file-perm)
+            if [[ "${2}" ]]; then
+                _file_perm=${2}
+                shift
+            else
+                echo -e "[ERROR] '--file-perm' requires a non-empty option argument." 1>&2
+                exit 1
+            fi
+            ;;
+        --file-perm=?*)
+            _file_perm=${1#*=} # Delete everything up to "=" and assign the remainder
+            ;;
+        --file-perm=)
+            echo -e "[ERROR] '--file-perm' requires a non-empty option argument." 1>&2
+            exit 1
+            ;;
+        --dir-perm)
+            if [[ "${2}" ]]; then
+                _dir_perm=${2}
+                shift
+            else
+                echo -e "[ERROR] '--dir-perm' requires a non-empty option argument." 1>&2
+                exit 1
+            fi
+            ;;
+        --dir-perm=?*)
+            _dir_perm=${1#*=} # Delete everything up to "=" and assign the remainder
+            ;;
+        --dir-perm=)
+            echo -e "[ERROR] '--dir-perm' requires a non-empty option argument." 1>&2
             exit 1
             ;;
         -?*)
@@ -199,5 +265,13 @@ if [[ "${_sync_direction,,}" == "pull" ]]; then
         age_clean ${_age_dir}
     else
         aws s3 sync ${_S3_BUCKET} ${_LOCAL}
+    fi
+
+    if [[ ! -z "${_file_perm}" ]]; then
+        mod_perm ${_LOCAL} ${_file_perm} "file"
+    fi
+
+    if [[ ! -z "${_dir_perm}" ]]; then
+        mod_perm ${_LOCAL} ${_dir_perm} "directory"
     fi
 fi

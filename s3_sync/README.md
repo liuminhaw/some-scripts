@@ -46,12 +46,12 @@ Usage: s3-sync.sh [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE
 
 **push with encryption**
 ```sh
-s3-sync.sh --age keyname.key push
+s3-sync.sh --age keyname.pub push
 ```
 
 **pull with decryption**
 ```sh
-s3-sync.sh --age keyname.pub pull
+s3-sync.sh --age keyname.key pull
 ```
 
 
@@ -59,3 +59,4 @@ s3-sync.sh --age keyname.pub pull
 1 - Usage error  
 2 - Missing config  
 3 - age usage error  
+4 - internal function usage error

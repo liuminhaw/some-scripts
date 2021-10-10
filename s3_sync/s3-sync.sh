@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script variables
-_VERSION=0.2.0
+_VERSION=0.2.1
 
 
 _config="config"
@@ -44,14 +44,16 @@ age_encrypt() {
     fi
 
     local _local=${1}
-    local _age_key=${2}
+    local _age_file=${2}
     local _age_dir=${3}
+
+    local _age_key=$(cat ${_age_file} | grep "public key" | cut -f 2 -d ':' | xargs)
 
     for _file in $(find ${_local} -type f); do
         echo "[DEBUG] encrypting ${_file}"
         _file_dir=$(dirname ${_file#"${_local}"})
         mkdir -p ${_age_dir}/${_file_dir}
-        age -R ${_age_key} -o ${_age_dir}/${_file#"${_local}"}.age ${_file}
+        age -r ${_age_key} -o ${_age_dir}/${_file#"${_local}"}.age ${_file}
     done
 }
 
@@ -66,11 +68,15 @@ age_decrypt() {
     local _tmp_dir="/tmp/$(date +%s).age"
 
     for _file in $(find ${_age_dir} -type f); do
-        echo "[DEBUG] decrypting ${_file}"
-        _file_dir=$(dirname ${_file#"${_age_dir}"})
-        _filename=$(basename ${_file})
-        mkdir -p ${_tmp_dir}/${_file_dir}
-        age --decrypt -i ${_age_key} -o ${_tmp_dir}/${_filename%".age"} ${_file}
+        if [[ "${_file##*.}" == "age" ]]; then
+            echo "[DEBUG] decrypting ${_file}"
+            _file_dir=$(dirname ${_file#"${_age_dir}"})
+            _filename=$(basename ${_file})
+            mkdir -p ${_tmp_dir}/${_file_dir}
+            age --decrypt -i ${_age_key} -o ${_tmp_dir}/${_filename%".age"} ${_file}
+        else 
+            echo "[INFO] File ${_file} skipped, doesn't seem to be encrypted with age"
+        fi
     done
 
     rm -rf ${_age_dir}

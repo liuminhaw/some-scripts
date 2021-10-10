@@ -2,7 +2,11 @@
 Sync directory to s3 bucket
 
 ## Version
-### v0.2.0
+### v0.2.1
+- Simplify `--age` option usage: Need only age generated key file to process encryption and decryption
+- Fix decryption process: Only decrypt files with extension `.age`
+
+#### v0.2.0
 - `--age` option
     - encrypt files with `age` program before sync push
     - decrypt files with `age` program after sync pull
@@ -23,11 +27,6 @@ Sync directory to s3 bucket
  Generate private key file
 ```sh
 age-keygen -o keyname.key
-```
-Generate public key file
-```sh
-# put age-keygen generated output (public key) to file - keyname.pub
-echo "public key content" > keyname.pub
 ```
 
 ## Configuration
@@ -53,7 +52,7 @@ s3-sync.sh [--help] [--version] [--config=CONFIG_FILE] [--age=AGE_KEYFILE] [--fi
 
 **push with encryption**
 ```sh
-s3-sync.sh --age keyname.pub push
+s3-sync.sh --age keyname.key push
 ```
 
 **pull with decryption**
